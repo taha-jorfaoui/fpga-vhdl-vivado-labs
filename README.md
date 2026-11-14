@@ -8,11 +8,11 @@ Conception numérique en VHDL, synthèse et programmation de cartes FPGA Xilinx 
 
 | Sujet | Type de logique |
 |---|---|
+| [Driver VGA](05_driver_vga/) | Séquentielle (génération des signaux de synchronisation vidéo, sprite en PROM) |
+| Compteurs | Séquentielle |
 | Portes logiques | Combinatoire |
 | Multiplexeurs | Combinatoire |
-| Compteurs | Séquentielle |
 | Calculateurs | Combinatoire et séquentielle |
-| [Driver VGA](05_driver_vga/) | Séquentielle (génération des signaux de synchronisation vidéo) |
 
 ## Outils
 
