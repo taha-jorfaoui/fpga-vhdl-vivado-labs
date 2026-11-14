@@ -1,0 +1,14 @@
+# Sorties Vivado (le projet se recree avec create_project.tcl)
+vivado_project/
+*.runs/
+*.cache/
+*.hw/
+*.sim/
+*.ip_user_files/
+.Xil/
+*.jou
+*.log
+*.str
+*.backup.*
+# Bitstreams
+*.bit
