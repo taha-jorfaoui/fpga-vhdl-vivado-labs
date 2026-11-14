@@ -12,7 +12,7 @@ Conception numérique en VHDL, synthèse et programmation de cartes FPGA Xilinx 
 | Multiplexeurs | Combinatoire |
 | Compteurs | Séquentielle |
 | Calculateurs | Combinatoire et séquentielle |
-| Driver VGA | Séquentielle (génération des signaux de synchronisation vidéo) |
+| [Driver VGA](05_driver_vga/) | Séquentielle (génération des signaux de synchronisation vidéo) |
 
 ## Outils
 
