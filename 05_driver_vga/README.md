@@ -1,6 +1,6 @@
 # Driver VGA 640×480 sur FPGA Basys 3 (VHDL)
 
-> *VGA 640×480 @ 60 Hz controller written in VHDL on a Digilent Basys 3 (Artix-7) board, built with Vivado: colour stripes, then a 32×16 sprite stored in a ROM and moved with the switches.*
+> *VGA 640×480 @ 60 Hz controller written in VHDL on a Digilent Basys 3 (Artix-7) board, built with Vivado: colour stripes, then a 32×16 sprite stored in a ROM, then a 240×160 colour image read from an FPGA Block RAM; both images are moved with the switches.*
 
 ## Le projet
 
@@ -61,6 +61,31 @@ Le contenu de la PROM (chaque `#` est un pixel blanc) :
 ################################
 ```
 
+### TP3 — Image couleur stockée en Block ROM
+
+Dans le TP2, le dessin était écrit à la main dans le VHDL, un bit par pixel. Pour une vraie image en couleur, ce n'est plus possible : on la stocke dans une **mémoire interne du FPGA** (Block RAM utilisée en ROM), générée par l'IP Xilinx *Block Memory Generator* et remplie par un fichier `.coe`. L'image fait **240 × 160 pixels**, soit 38 400 octets, chaque octet codant un pixel au format `RRRGGGBB` (256 couleurs). Les 8 interrupteurs déplacent toujours l'image.
+
+```mermaid
+flowchart LR
+    clk["mclk 100 MHz"] --> div["div_clk"]
+    div -- "clk25" --> vga["VGA640x480"]
+    vga -- "hsync, vsync" --> ecran(("écran VGA"))
+    vga -- "hc, vc, vidon" --> sp["VGA_PROM_2"]
+    sw["sw[7:0]"] --> sp
+    sp -- "rom_addr16 (16 bits)" --> rom["sprite_rom<br/>Block ROM 38 400 × 8 bits"]
+    div -- "clk25" --> rom
+    rom -- "M (8 bits RRRGGGBB)" --> sp
+    sp -- "red, green, blue (4 bits)" --> ecran
+```
+
+Le module `VGA_PROM_2`, écrit pour ce TP, fait trois choses :
+
+- **Il calcule l'adresse du pixel** : l'image est rangée ligne après ligne, donc `adresse = ypix × 240 + xpix`. La multiplication par 240 se fait sans multiplieur, avec quatre décalages et quatre additions (`240 = 128 + 64 + 32 + 16`). Hors de l'image, l'adresse est forcée à 0 pour ne jamais sortir de la ROM.
+- **Il compense la latence de la mémoire** : la Block ROM est synchrone et ne rend la donnée qu'un cycle d'horloge après avoir reçu l'adresse, quand le balayage a déjà avancé d'un pixel. Le module présente donc l'adresse du pixel **suivant**. Sans cette correction, toute l'image serait décalée d'un pixel vers la droite.
+- **Il convertit la couleur** : chaque composante est étendue à 4 bits pour la sortie VGA de la Basys 3 en recopiant ses bits de poids fort (`111` → `1111`, `000` → `0000`), pour que le blanc reste blanc et le noir reste noir.
+
+Un point de l'énoncé était contradictoire : le texte parle de données sur 12 bits, mais la figure de l'IP et les fichiers `.coe` fournis sont en 8 bits. J'ai suivi les fichiers réels (8 bits) et documenté l'écart. Les pas de déplacement (25 pixels en colonne, 20 lignes en ligne) sont choisis pour que l'image reste toujours entière à l'écran.
+
 ### Le VGA 640×480 en chiffres
 
 | Paramètre | Valeur |
@@ -106,6 +131,21 @@ On déplace le sprite sur l'écran en actionnant les interrupteurs de la carte.
 
 *Cliquer sur l'aperçu pour ouvrir la vidéo complète (32 s, [`tp2_deplacement_sprite.mp4`](video/tp2_deplacement_sprite.mp4)).*
 
+**TP3** — l'image couleur 240 × 160, lue dans la Block ROM, s'affiche nette sur fond noir. Sur la seconde photo, on voit l'écran VGA, Vivado (Hardware Manager, carte programmée, fichier `VGA_PROM_2.vhd` ouvert) et la carte Basys 3 au premier plan.
+
+<p align="center">
+  <img src="images/07_tp3_image_ferrari_ecran.jpg" alt="Image couleur 240×160 lue dans la Block ROM, affichée sur l'écran VGA" width="340">
+  <img src="images/08_tp3_poste_vivado_et_carte.jpg" alt="Poste du TP3 : écran VGA avec l'image, Vivado et carte Basys 3" width="460">
+</p>
+
+### Vidéo : déplacement de l'image (TP3)
+
+L'image change de position sur l'écran quand on actionne les interrupteurs.
+
+[![Aperçu de la vidéo du TP3](video/tp3_deplacement_image_apercu.gif)](video/tp3_deplacement_image.mp4)
+
+*Cliquer sur l'aperçu pour ouvrir la vidéo complète (11 s, [`tp3_deplacement_image.mp4`](video/tp3_deplacement_image.mp4)).*
+
 ### En simulation
 
 Les chronogrammes ont été relevés sur la simulation et correspondent à ce qui est attendu :
@@ -119,25 +159,39 @@ Les chronogrammes ont été relevés sur la simulation et correspondent à ce qu
 | Pixels visibles par image | 640 × 480 = 307 200 | 307 200 |
 | Sprite (interrupteurs à 0) | 188 pixels allumés, colonnes 145 à 176, lignes 32 à 47 | identique à la PROM, pixel par pixel |
 
+Pour le TP3, la simulation a été faite avec **GHDL** et un modèle de la Block ROM que j'ai écrit (même interface que l'IP, lecture à un cycle de latence, contenu lu dans le `.coe`). Un script Python compare **chaque pixel** de l'écran à l'image attendue, calculée directement depuis le `.coe` :
+
+| Test (2 images de 640 × 480) | Image 1 : interrupteurs `00000000` | Image 2 : `00100011` (image décalée de 75 px et 40 lignes) |
+|---|---|---|
+| Pixels de l'image faux | 0 / 38 400 | 0 / 38 400 |
+| Pixels du fond noir faux | 0 / 268 800 | 0 / 268 800 |
+| Adresses hors de la ROM | 0 | 0 |
+
+Le test détecte bien un décalage d'un seul pixel : sans la compensation de latence, il trouve 6 354 pixels faux sur la première image.
+
 ## Organisation du dossier
 
 ```
 05_driver_vga/
 ├── README.md
 ├── images/                 photos du montage et des résultats
-├── video/                  vidéo du TP2 (et son aperçu)
+├── video/                  vidéos du TP2 et du TP3 (et leurs aperçus)
 ├── tp1_vga_stripes/        TP1 : sources, testbenches, contraintes .xdc, create_project.tcl
-└── tp2_vga_prom/           TP2 : idem, avec PROM.vhd et VGA_PROM.vhd
+├── tp2_vga_prom/           TP2 : idem, avec PROM.vhd et VGA_PROM.vhd
+└── tp3_vga_bloc_rom/       TP3 : sources/, simulation/, constraints/, verification/, create_project.tcl
 ```
 
 Chaque dossier de TP contient tout ce qu'il faut pour recréer le projet : `create_project.tcl` crée le projet Vivado (`Tools → Run Tcl Script…`), avec comme top de synthèse `TOP_VGA_SPRITES` (TP1) ou `TOP_VGA_PROM` (TP2) et comme top de simulation le testbench `…_tb` correspondant (lancer la simulation sur 35 ms pour voir une image complète).
 
-Le reset est affecté à un bouton de la carte : `BTNR` (TP1) et le bouton central `BTNC` (TP2), voir les fichiers `.xdc`.
+Pour le TP3, le script crée aussi l'IP `sprite_rom` ; il faut d'abord placer le fichier `.coe` du cours dans `tp3_vga_bloc_rom/ip/` (détails dans le [guide du TP3](tp3_vga_bloc_rom/LISEZ-MOI.md)).
+
+Le reset est affecté à un bouton de la carte : `BTNR` (TP1) et le bouton central `BTNC` (TP2), voir les fichiers `.xdc`. Au TP3, il est aussi sur le bouton central.
 
 ## Crédits
 
-Le fichier `VGA640x480.vhd` reprend le code de référence montré en cours (HAE924E, Université de Montpellier). Le reste (division d'horloge, couleurs, PROM, sprite, déplacement, testbenches) est le travail du TP.
+Le fichier `VGA640x480.vhd` reprend le code de référence montré en cours (HAE924E, Université de Montpellier). Le reste (division d'horloge, couleurs, PROM, sprite, déplacement, testbenches) est le travail du TP. Au TP3, `VGA_PROM_2`, `TOP_VGA_PROM_2`, le modèle de ROM, le script de vérification et les testbenches sont mon travail ; l'image et son fichier `.coe` viennent des ressources du cours et ne sont pas publiés.
 
-## À venir
+## Pistes
 
-TP3 : afficher une vraie image depuis une ROM générée avec l'IP *Block Memory Generator* de Xilinx (fichier `.coe`).
+- Relever les rapports Vivado du TP3 (ressources LUT et BRAM, timing).
+- Passer à 4 096 couleurs avec un `.coe` 12 bits et une ROM de 12 bits de large.
