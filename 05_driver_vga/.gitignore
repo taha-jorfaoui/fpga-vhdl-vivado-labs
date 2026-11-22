@@ -12,3 +12,7 @@ vivado_project/
 *.backup.*
 # Bitstreams
 *.bit
+# TP3 : projet Vivado cree dans vivado/, image du cours non publiee, sorties de simulation
+vivado/
+*.coe
+*.vcd
