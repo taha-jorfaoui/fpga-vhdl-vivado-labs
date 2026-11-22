@@ -1,6 +1,6 @@
 # FPGA & VHDL — Travaux pratiques sous Xilinx Vivado
 
-> *VHDL designs for Xilinx FPGA boards, developed with Vivado: combinational and sequential logic, counters, multiplexers, calculators and a VGA driver.*
+> *VHDL designs for Xilinx FPGA boards, developed with Vivado: combinational and sequential logic, counters, multiplexers, calculators and a VGA driver that displays a colour image from an FPGA Block RAM.*
 
 ## Contenu
 
@@ -8,7 +8,7 @@ Conception numérique en VHDL, synthèse et programmation de cartes FPGA Xilinx 
 
 | Sujet | Type de logique |
 |---|---|
-| [Driver VGA](05_driver_vga/) | Séquentielle (génération des signaux de synchronisation vidéo, sprite en PROM) |
+| [Driver VGA](05_driver_vga/) | Séquentielle (génération des signaux de synchronisation vidéo, sprite en PROM, image couleur en Block ROM), validé sur carte Basys 3 |
 | Compteurs | Séquentielle |
 | Portes logiques | Combinatoire |
 | Multiplexeurs | Combinatoire |
@@ -16,7 +16,7 @@ Conception numérique en VHDL, synthèse et programmation de cartes FPGA Xilinx 
 
 ## Outils
 
-VHDL · Xilinx Vivado (synthèse, implémentation, programmation de la carte)
+VHDL · Xilinx Vivado (synthèse, implémentation, programmation de la carte, IP Block Memory Generator) · simulation GHDL
 
 ## Organisation prévue
 
